@@ -170,9 +170,12 @@ class ApiController extends Controller
     //生成access_token
     public function access_token($id)
     {
-        $res = Ee::where('id',$id)->first()->toArray();
+        $uid = Auth::user()->id;
+        $res = Ee::where(['id'=>$id,'uid'=>$uid])->first();
         if($res){
             return view('access',['id'=>$id,'appid'=>$res['appid'],'key'=>$res['key']]);
+        }else{
+            echo "<h3>当前用户注册的企业号为".$id."的不存在！！</h3>";
         }
     }
 }
