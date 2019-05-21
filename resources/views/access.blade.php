@@ -40,10 +40,13 @@
 <script src="/js/jquery-1.12.4.min.js"></script>
 <script>
     $(function(){
+        var appid ="{{$appid}}";
+        var key ="{{$key}}";
         //获取token
         $('#btu').click(function(){
             $.ajax({
-                url:"/get_access/{{$id}}",
+                url:"/get_access",
+                data:{appid:appid,key:key},
                 dataType:'json',
                 method:'get',
                 success:function(res){
@@ -57,7 +60,8 @@
         //点击显示客户端ip
         $('#g_ip').click(function(){
             $.ajax({
-                url:"/get_kip/{{$id}}",
+                url:"/get_kip",
+                data:{appid:appid,key:key},
                 dataType:'json',
                 method:'get',
                 success:function(res){
@@ -71,7 +75,8 @@
         //点击显示客户端ua
         $('#g_ua').click(function(){
             $.ajax({
-                url:"/get_kua/{{$id}}",
+                url:"/get_kua",
+                data:{appid:appid,key:key},
                 dataType:'json',
                 method:'get',
                 success:function(res){
@@ -86,7 +91,8 @@
         //点击显示用户信息
         $('#g_info').click(function(){
             $.ajax({
-                url:"/get_userinfo/{{$id}}",
+                url:"/get_userinfo",
+                data:{appid:appid,key:key},
                 dataType:'json',
                 method:'get',
                 success:function(res){

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Model\Ee;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Redis;
 class ApiController extends Controller
@@ -26,7 +27,7 @@ class ApiController extends Controller
         //存储
         $store_result = $photo->storeAs('zhizhao', $path);
 
-
+        $_POST['uid']= Auth::id();
         $_POST['zhizhao']='zhizhao/'.$path;
         unset($_POST['_token']);
         $data = $_POST;
@@ -40,29 +41,30 @@ class ApiController extends Controller
             die('您的注册出现失误！');
         }
     }
-    //生成APPID
-    function getAppid($a,$b)
-    {
-        return strtoupper(substr(md5(time().$a.Str::random(10)).$b,8,20));
-    }
-    //生成KEY
-    function getKey($appid)
-    {
-        return substr(md5($appid),6,20);
-    }
+//    //生成APPID
+//    function getAppid($a,$b)
+//    {
+//        return strtoupper(substr(md5(time().$a.Str::random(10)).$b,8,20));
+//    }
+//    //生成KEY
+//    function getKey($appid)
+//    {
+//        return substr(md5($appid),6,20);
+//    }
     //获取access_tokern
-    public function get_access($id = 0)
+    public function get_access(Request $request)
     {
-        $res = Ee::where('id',$id)->first();
-        if(!$id || !$res)
+        $appid = $request->appid;
+        $key = $request->key;
+        $res = Ee::where(['appid'=>$appid,'key'=>$key])->first();
+        if(!$res)
         {
             $arr = [
                 'err'=>5001,
-                'msg'=>'该用户不存在！'
+                'msg'=>'该用户注册的企业号不存在！'
             ];
             die(json_encode($arr));
         }
-
         if(time()-$res['a_time']<60){
             if($res['a_num']>=20){
                 $arr = [
@@ -73,7 +75,7 @@ class ApiController extends Controller
                 $appid = $res['appid'];
                 $key = $res['key'];
                 $access_token = $this->get_access_token($appid,$key);
-                $r = Ee::where('id',$id)->update(['a_token'=>$access_token,'a_num'=>$res['a_num']+1,'a_guoqi'=>time()]);
+                $r = Ee::where(['appid'=>$appid,'key'=>$key])->update(['a_token'=>$access_token,'a_num'=>$res['a_num']+1,'a_guoqi'=>time()]);
                 if($r){
                     $arr = [
                         'err'=>1,
@@ -89,7 +91,7 @@ class ApiController extends Controller
             $appid = $res['appid'];
             $key = $res['key'];
             $access_token = $this->get_access_token($appid,$key);
-            $r = Ee::where('id',$id)->update(['a_token'=>$access_token,'a_time'=>time(),'a_num'=>1,'a_guoqi'=>time()]);
+            $r = Ee::where(['appid'=>$appid,'key'=>$key])->update(['a_token'=>$access_token,'a_time'=>time(),'a_num'=>1,'a_guoqi'=>time()]);
             if($r){
                 $arr = [
                     'err'=>1,
@@ -103,48 +105,8 @@ class ApiController extends Controller
         }
     }
     //获取IP
-    public function get_kip($id = 0)
+    public function get_kip()
     {
-        $res = Ee::where('id',$id)->first();
-        if(!$id || !$res)
-        {
-            $arr = [
-                'err'=>5001,
-                'msg'=>'该用户不存在！'
-            ];
-            die(json_encode($arr));
-        }elseif(time()-$res['a_guoqi']>3600){
-            $arr = [
-                'err'=>5002,
-                'msg'=>'该token已经过期，请重新获取！'
-            ];
-            die(json_encode($arr));
-        }
-
-        //查询次数
-        $k = 'ip:num:'.$id;
-        $k1 = 'ip:time:'.$id;
-        $a = Redis::get($k);
-        $a1 = Redis::get($k1);
-        if(!$a && !$a1){
-            Redis::incr($k);
-            Redis::set($k1,time());
-        }else{
-            if(time()-$a1<60){//一分钟之内
-                if($a>=20){
-                    $arr = [
-                        'err'=>5003,
-                        'msg'=>'每分钟请求次数已经达到限制！'
-                    ];
-                    die(json_encode($arr));
-                }else{
-                    Redis::incr($k);
-                }
-            }else{//超过一分钟
-                Redis::set($k,1);
-                Redis::set($k1,time());
-            }
-        }
         $arr = [
             'err'=>1,
             'msg'=>'获取客户端的ip成功！',
@@ -152,53 +114,11 @@ class ApiController extends Controller
                 'ip'=>$_SERVER['SERVER_ADDR']
             ]
         ];
-//        $ip = $_SERVER['SERVER_ADDR'];
         echo json_encode($arr);
     }
     //获取UA
-    public function get_kua($id = 0)
+    public function get_kua()
     {
-        $res = Ee::where('id',$id)->first();
-        if(!$id || !$res)
-        {
-            $arr = [
-                'err'=>5001,
-                'msg'=>'该用户不存在！'
-            ];
-            die(json_encode($arr));
-        }elseif(time()-$res['a_guoqi']>3600){
-            $arr = [
-                'err'=>5002,
-                'msg'=>'该token已经过期，请重新获取！'
-            ];
-            die(json_encode($arr));
-        }
-
-        //查询次数
-        $k = 'ip:num:'.$id;
-        $k1 = 'ip:time:'.$id;
-        $a = Redis::get($k);
-        $a1 = Redis::get($k1);
-        if(!$a && !$a1){
-            Redis::incr($k);
-            Redis::set($k1,time());
-        }else{
-            if(time()-$a1<60){//一分钟之内
-                if($a>=20){
-                    $arr = [
-                        'err'=>5003,
-                        'msg'=>'每分钟请求次数已经达到限制！'
-                    ];
-                    die(json_encode($arr));
-                }else{
-                    Redis::incr($k);
-                }
-            }else{//超过一分钟
-                Redis::set($k,1);
-                Redis::set($k1,time());
-            }
-        }
-//        dd($_SERVER['HTTP_USER_AGENT']);
         $arr = [
             'err'=>1,
             'msg'=>'获取客户端的UA成功！',
@@ -238,63 +158,21 @@ class ApiController extends Controller
         echo json_encode($arr);
     }
     //获取用户的信息
-    public  function get_userinfo($id){
-        $res = Ee::where('id',$id)->first()->toArray();
-        if(!$id || !$res)
-        {
-            $arr = [
-                'err'=>5001,
-                'msg'=>'该用户不存在！'
-            ];
-        }elseif(time()-$res['a_guoqi']>3600){
-            $arr = [
-                'err'=>5002,
-                'msg'=>'该token已经过期，请重新获取！'
-            ];
-        }else{
-            //查询次数
-            $k = 'info:num:'.$id;
-            $k1 = 'info:time:'.$id;
-            $a = Redis::get($k);
-            $a1 = Redis::get($k1);
-            if(!$a && !$a1){
-                Redis::incr($k);
-                Redis::set($k1,time());
-            }else{
-                if(time()-$a1<60){//一分钟之内
-                    if($a>=20){
-                        $arr = [
-                            'err'=>5003,
-                            'msg'=>'每分钟请求次数已经达到限制！'
-                        ];
-                        die(json_encode($arr));
-                    }else{
-                        Redis::incr($k);
-                    }
-                }else{//超过一分钟
-                    Redis::set($k,1);
-                    Redis::set($k1,time());
-                }
-            }
-            $arr = [
-                'err'=>1,
-                'msg'=>$res
-            ];
-        }
+    public  function get_userinfo(){
+        $aa = Auth::user()->id;
+        $res = Ee::where(['uid'=>$aa])->first()->toArray();
+        $arr = [
+            'err'=>1,
+            'msg'=>$res
+        ];
         die(json_encode($arr));
     }
     //生成access_token
     public function access_token($id)
     {
         $res = Ee::where('id',$id)->first()->toArray();
-        //生成APPID
-        $appid = $this->getAppid($res['user'],$res['code']);
-        //生成KEY
-        $key = $this->getKey($appid);
-        //修改 该用户的appid和key
-        $r = Ee::where('id',$id)->update(['appid'=>$appid,'key'=>$key]);
-        if($r){
-            return view('access',['id'=>$id,'appid'=>$appid,'key'=>$key]);
+        if($res){
+            return view('access',['id'=>$id,'appid'=>$res['appid'],'key'=>$res['key']]);
         }
     }
 }

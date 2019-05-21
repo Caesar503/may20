@@ -5,7 +5,8 @@
     <title>Regist</title>
 </head>
 <body>
-    <h3>注册</h3>
+    <h2>欢迎 <font color="#ff1493">{{Auth::user()->name}}</font>登录</h2>
+    <h3>注册企业</h3>
     <hr>
     <form action="/registDo" method="post" enctype="multipart/form-data">
         @csrf
